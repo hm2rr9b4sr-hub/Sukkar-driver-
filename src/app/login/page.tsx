@@ -8,6 +8,7 @@ export default function DriverLoginPage() {
   const { signIn } = useDriverAuth();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -49,14 +50,25 @@ export default function DriverLoginPage() {
           </div>
           <div>
             <label className="block text-sm font-semibold mb-1.5">كلمة المرور</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl border text-base"
-              style={{ borderColor: "var(--border)" }}
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 pl-12 rounded-2xl border text-base"
+                style={{ borderColor: "var(--border)" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold"
+                style={{ color: "var(--muted)" }}
+                aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+              >
+                {showPassword ? "🙈" : "👁️"}
+              </button>
+            </div>
           </div>
 
           {error && (
