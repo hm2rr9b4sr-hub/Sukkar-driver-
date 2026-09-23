@@ -198,3 +198,19 @@ export async function fetchDriverNotifications(): Promise<UIDriverNotification[]
   if (error || !data) return [];
   return data.map((n) => ({ id: n.id, deliveryId: n.delivery_id, type: n.type, message: n.message, isRead: n.is_read, createdAt: n.created_at }));
 }
+
+// طلب حذف حساب المندوب (P0-6.1.1) — نفس نمط createDriver بمشروع سُكّر
+// الرئيسي (توكن الجلسة عبر Authorization header، لا صلاحية RLS تغطي هذا).
+export async function deleteMyAccount(): Promise<{ error: string | null }> {
+  const supabase = createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { error: "unauthorized" };
+
+  const res = await fetch("/api/account/delete", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) return { error: body.error ?? "delete-account-failed" };
+  return { error: null };
+}

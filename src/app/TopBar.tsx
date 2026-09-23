@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useDriverAuth } from "@/lib/DriverAuthContext";
 
 function StatusPill() {
@@ -32,6 +33,15 @@ export default function TopBar() {
       </div>
       <div className="flex items-center gap-2">
         <StatusPill />
+        {driver && (
+          <Link
+            href="/account"
+            className="text-xs font-semibold px-3 py-1.5 rounded-full border"
+            style={{ borderColor: "var(--border)", color: "var(--muted)" }}
+          >
+            حسابي
+          </Link>
+        )}
         {driver && (
           <button
             onClick={() => logout()}

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDriverAuth } from "@/lib/DriverAuthContext";
 
@@ -88,7 +89,22 @@ export default function DriverLoginPage() {
         </form>
 
         <p className="text-xs text-center mt-4" style={{ color: "var(--muted)" }}>
-          الحسابات تُنشأ من فريق سُكّر فقط — تواصل مع الدعم إن لم يكن لديك حساب.
+          الحسابات تُنشأ من فريق سُكّر فقط —{" "}
+          <a
+            href={`https://wa.me/${(process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "").replace(/\D/g, "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold underline"
+            style={{ color: "var(--gold)" }}
+          >
+            تواصل مع الدعم
+          </a>
+          {" "}إن لم يكن لديك حساب.
+        </p>
+        <p className="text-center mt-2">
+          <Link href="/privacy" className="text-xs underline" style={{ color: "var(--muted)" }}>
+            سياسة الخصوصية
+          </Link>
         </p>
       </div>
     </div>
