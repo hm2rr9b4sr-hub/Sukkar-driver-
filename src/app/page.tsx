@@ -156,6 +156,37 @@ export default function DriverHomePage() {
     return <p className="text-center py-10" style={{ color: "var(--muted)" }}>جارٍ التحميل...</p>;
   }
 
+  // Driver Onboarding: Account First, Approval Before Work — لا لوحة عمل
+  // إطلاقاً قبل موافقة الأدمن (الحارس الفعلي server-side بالـRPCs نفسها،
+  // هذا فقط تجربة استخدام واضحة بدل شاشة عمل لا تعمل أزرارها فعلياً).
+  if (driver.approvalStatus === "pending") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center gap-4 px-4">
+        <span className="text-5xl">⏳</span>
+        <h1 className="text-xl font-black" style={{ color: "var(--gold)" }}>حسابك بانتظار المراجعة</h1>
+        <p className="text-sm max-w-xs" style={{ color: "var(--muted)" }}>
+          يراجع فريق سُكّر طلبك الآن. سيُفتح لك استقبال طلبات التوصيل فور الموافقة — لا حاجة لفعل أي شيء الآن.
+        </p>
+      </div>
+    );
+  }
+  if (driver.approvalStatus === "rejected") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center gap-4 px-4">
+        <span className="text-5xl">🚫</span>
+        <h1 className="text-xl font-black text-red-600">لم تتم الموافقة على حسابك</h1>
+        {driver.rejectionReason && (
+          <p className="text-sm max-w-xs rounded-xl p-3" style={{ background: "#FEE2E2", color: "#991B1B" }}>
+            {driver.rejectionReason}
+          </p>
+        )}
+        <p className="text-sm max-w-xs" style={{ color: "var(--muted)" }}>
+          للاستفسار، تواصل مع فريق الدعم.
+        </p>
+      </div>
+    );
+  }
+
   const isWorking = driver.status !== "offline";
 
   return (

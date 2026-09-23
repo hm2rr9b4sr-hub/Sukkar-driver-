@@ -6,23 +6,30 @@ import { useDriverAuth } from "@/lib/DriverAuthContext";
 
 export default function DriverLoginPage() {
   const router = useRouter();
-  const { signIn } = useDriverAuth();
+  const { requestOtp, verifyLoginOtp } = useDriverAuth();
   const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"phone" | "code">("phone");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleRequestOtp(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const { error } = await signIn({ phone, password });
+    const { error } = await requestOtp(phone, "driver_login");
     setSubmitting(false);
-    if (error) {
-      setError(error);
-      return;
-    }
+    if (error) { setError(error); return; }
+    setStep("code");
+  }
+
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    const { error } = await verifyLoginOtp(phone, code);
+    setSubmitting(false);
+    if (error) { setError(error); return; }
     router.replace("/");
   }
 
@@ -35,76 +42,95 @@ export default function DriverLoginPage() {
           <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>Sukkar Driver</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label className="block text-sm font-semibold mb-1.5">رقم الهاتف</label>
-            <input
-              type="tel"
-              inputMode="tel"
-              required
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="7XXXXXXXX"
-              className="w-full px-4 py-3 rounded-2xl border text-base"
-              style={{ borderColor: "var(--border)" }}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold mb-1.5">كلمة المرور</label>
-            <div className="relative">
+        {step === "phone" ? (
+          <form onSubmit={handleRequestOtp} className="flex flex-col gap-4">
+            <div>
+              <label className="block text-sm font-semibold mb-1.5">رقم الهاتف</label>
               <input
-                type={showPassword ? "text" : "password"}
+                type="tel"
+                inputMode="tel"
                 required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 pl-12 rounded-2xl border text-base"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="7XXXXXXXX"
+                className="w-full px-4 py-3 rounded-2xl border text-base"
                 style={{ borderColor: "var(--border)" }}
+                dir="ltr"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold"
-                style={{ color: "var(--muted)" }}
-                aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
-              >
-                {showPassword ? "🙈" : "👁️"}
-              </button>
             </div>
-          </div>
 
-          {error && (
-            <div className="text-sm font-semibold text-red-600 bg-red-50 rounded-xl px-3 py-2 text-center">
-              {error}
+            {error && (
+              <div className="text-sm font-semibold text-red-600 bg-red-50 rounded-xl px-3 py-2 text-center">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-3.5 rounded-2xl font-bold text-white text-base disabled:opacity-60"
+              style={{ background: "var(--gold)" }}
+            >
+              {submitting ? "جارٍ الإرسال..." : "إرسال رمز التحقق"}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerify} className="flex flex-col gap-4">
+            <p className="text-sm text-center" style={{ color: "var(--muted)" }}>
+              أُرسل رمز تحقق إلى <span dir="ltr">{phone}</span>
+            </p>
+            <div>
+              <label className="block text-sm font-semibold mb-1.5">رمز التحقق</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                required
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="000000"
+                className="w-full px-4 py-3 rounded-2xl border text-base text-center tracking-[0.5em]"
+                style={{ borderColor: "var(--border)" }}
+                dir="ltr"
+              />
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full py-3.5 rounded-2xl font-bold text-white text-base disabled:opacity-60"
-            style={{ background: "var(--gold)" }}
-          >
-            {submitting ? "جارٍ الدخول..." : "دخول"}
-          </button>
-        </form>
+            {error && (
+              <div className="text-sm font-semibold text-red-600 bg-red-50 rounded-xl px-3 py-2 text-center">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-3.5 rounded-2xl font-bold text-white text-base disabled:opacity-60"
+              style={{ background: "var(--gold)" }}
+            >
+              {submitting ? "جارِ التحقق..." : "تأكيد الدخول"}
+            </button>
+            <button type="button" onClick={() => { setStep("phone"); setCode(""); setError(null); }} className="text-xs" style={{ color: "var(--muted)" }}>
+              تغيير رقم الهاتف
+            </button>
+          </form>
+        )}
 
         <p className="text-xs text-center mt-4" style={{ color: "var(--muted)" }}>
-          الحسابات تُنشأ من فريق سُكّر فقط —{" "}
+          ليس لديك حساب؟{" "}
+          <Link href="/join" className="font-semibold underline" style={{ color: "var(--gold)" }}>
+            سجّل كمندوب جديد
+          </Link>
+        </p>
+        <p className="text-center mt-2 text-xs" style={{ color: "var(--muted)" }}>
           <a
             href={`https://wa.me/${(process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "").replace(/\D/g, "")}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-semibold underline"
-            style={{ color: "var(--gold)" }}
+            className="underline"
           >
-            تواصل مع الدعم
+            لم يصلك الرمز؟ تواصل مع الدعم
           </a>
-          {" "}إن لم يكن لديك حساب.
-        </p>
-        <p className="text-center mt-2">
-          <Link href="/privacy" className="text-xs underline" style={{ color: "var(--muted)" }}>
-            سياسة الخصوصية
-          </Link>
+          {" · "}
+          <Link href="/privacy" className="underline">سياسة الخصوصية</Link>
         </p>
       </div>
     </div>

@@ -29,6 +29,8 @@ export interface UIDelivery {
   createdAt: string;
 }
 
+export type DriverApprovalStatus = "pending" | "approved" | "rejected";
+
 export interface UIDriverProfile {
   id: string;
   fullName: string;
@@ -36,15 +38,31 @@ export interface UIDriverProfile {
   status: DriverStatus;
   regionId: string;
   isActive: boolean;
+  approvalStatus: DriverApprovalStatus;
+  rejectionReason: string | null;
 }
 
 export async function fetchMyDriverProfile(): Promise<UIDriverProfile | null> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data, error } = await supabase.from("drivers").select("id, full_name, phone, status, region_id, is_active").eq("id", user.id).single();
+  const { data, error } = await supabase.from("drivers").select("id, full_name, phone, status, region_id, is_active, approval_status, rejection_reason").eq("id", user.id).single();
   if (error || !data) return null;
-  return { id: data.id, fullName: data.full_name, phone: data.phone, status: data.status as DriverStatus, regionId: data.region_id, isActive: data.is_active };
+  return {
+    id: data.id, fullName: data.full_name, phone: data.phone, status: data.status as DriverStatus,
+    regionId: data.region_id, isActive: data.is_active,
+    approvalStatus: data.approval_status as DriverApprovalStatus, rejectionReason: data.rejection_reason,
+  };
+}
+
+// المناطق المتاحة للاختيار عند التسجيل الذاتي — قراءة عامة (regions RLS
+// الحالية تسمح بالقراءة العامة أصلاً بالمشروع الرئيسي، نفس الجدول هنا).
+export interface UIRegionOption { id: string; nameAr: string; }
+export async function fetchRegionsForSignup(): Promise<UIRegionOption[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase.from("regions").select("id, name_ar").eq("fleet_enabled", true).order("name_ar");
+  if (error || !data) return [];
+  return data.map((r) => ({ id: r.id, nameAr: r.name_ar }));
 }
 
 export async function driverSetStatus(status: "offline" | "available"): Promise<{ error: string | null }> {
