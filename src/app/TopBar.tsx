@@ -7,7 +7,10 @@ function StatusPill() {
   if (!driver) return null;
 
   const label = driver.status === "available" ? "متاح" : driver.status === "busy" ? "مشغول" : "غير متصل";
-  const color = driver.status === "available" ? "#16A34A" : driver.status === "busy" ? "#D97706" : "#7C6552";
+  // أخضر/أحمر تبقى ألوان حالة وظيفية قياسية (متاح/غير متصل) بلا تغيير —
+  // "مشغول" فقط استُبدل بـHoney (لون العلامة الرسمي المخصَّص أصلاً
+  // كـ"functional accent") بدل الذهبي القديم.
+  const color = driver.status === "available" ? "#16A34A" : driver.status === "busy" ? "#E0A04F" : "#8A6A64";
 
   return (
     <span className="text-xs font-bold px-3 py-1 rounded-full text-white" style={{ background: color }}>
@@ -25,7 +28,7 @@ export default function TopBar() {
     >
       <div className="flex items-center gap-2">
         <span className="text-xl">🛵</span>
-        <span className="font-black" style={{ color: "var(--gold)" }}>Sukkar Driver</span>
+        <span className="brand-display font-black" style={{ color: "var(--gold)" }}>Sukkar Driver</span>
       </div>
       <div className="flex items-center gap-2">
         <StatusPill />

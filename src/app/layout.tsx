@@ -4,7 +4,7 @@ import { DriverAuthProvider } from "@/lib/DriverAuthContext";
 import TopBar from "./TopBar";
 
 export const metadata: Metadata = {
-  title: "Sukkar Driver",
+  title: "سُكّر",
   description: "تطبيق مندوبي التوصيل لأسطول سُكّر",
   manifest: "/manifest.json",
   icons: {
@@ -17,12 +17,12 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Sukkar Driver",
+    title: "سُكّر",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#D97706",
+  themeColor: "#A5604F",
   width: "device-width",
   initialScale: 1,
 };

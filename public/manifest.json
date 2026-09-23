@@ -1,12 +1,12 @@
 {
-  "name": "Sukkar Driver",
-  "short_name": "Sukkar Driver",
+  "name": "سُكّر",
+  "short_name": "سُكّر",
   "description": "تطبيق مندوبي التوصيل لأسطول سُكّر",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#FFF8F0",
-  "theme_color": "#D97706",
+  "background_color": "#FBF3EF",
+  "theme_color": "#A5604F",
   "lang": "ar",
   "dir": "rtl",
   "icons": [

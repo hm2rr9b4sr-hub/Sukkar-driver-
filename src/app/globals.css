@@ -1,23 +1,44 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap');
+/* P0-5 — نفس الهوية الرسمية المعتمدة لتطبيق العميل (سُكّر الرئيسي،
+   commit 5e0c39e)، بلا أي تعديل على القيم. لا خط Latin هنا عمداً — تطبيق
+   المندوب عربي فقط بلا وضع لغة إنجليزية، فلا حاجة لـCormorant Garamond. */
+@import url('https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --bg: #FFF8F0;
-  --card: #FFFCF7;
-  --border: #F3E4C6;
-  --text: #2C1A0E;
-  --muted: #7C6552;
-  --gold: #D97706;
-  --gold-light: #FDE68A;
+  --cocoa: #4A2C2A;
+  --cream: #FBF3EF;
+  --peony: #E8C0B6;
+  --peony-light: #F3DDD6;
+  --peach: #C98A7A;
+  --peach-ink: #A5604F;
+  --cherry: #C41E3A;
+  --honey: #E0A04F;
+  --white: #FFFFFF;
+  --line: #EFDCD5;
+  --muted: #8A6A64;
+
+  --bg: var(--cream);
+  --card: var(--white);
+  --border: var(--line);
+  --text: var(--cocoa);
+  --gold: var(--peach-ink);
+  --gold-light: var(--peony-light);
+
+  --font-ar: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+  --font-display: 'Aref Ruqaa', 'Amiri', 'Times New Roman', serif;
 }
 
 body {
   background-color: var(--bg);
   color: var(--text);
-  font-family: 'Cairo', sans-serif;
+  font-family: var(--font-ar);
+}
+
+.brand-display {
+  font-family: var(--font-display);
 }
 
 html { scroll-behavior: smooth; }
