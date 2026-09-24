@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDriverAuth } from "@/lib/DriverAuthContext";
@@ -93,6 +94,14 @@ export default function AccountPage() {
           </div>
         )}
       </div>
+
+      {/* بعد تسجيل الدخول لم يكن هناك أي رابط لسياسة الخصوصية داخل التطبيق
+          (كان على /login فقط) — مطلوب ظاهراً داخل التطبيق بمراجعة المتاجر. */}
+      <p className="text-xs text-center" style={{ color: "var(--muted)" }}>
+        <Link href="/privacy" className="underline">سياسة الخصوصية</Link>
+        {" · "}
+        <Link href="/account-deletion" className="underline">طريقة حذف الحساب</Link>
+      </p>
     </div>
   );
 }

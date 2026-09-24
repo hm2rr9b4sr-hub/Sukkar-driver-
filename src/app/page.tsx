@@ -245,6 +245,15 @@ export default function DriverHomePage() {
             {togglingStatus ? "..." : isWorking ? "إنهاء العمل" : "بدء العمل"}
           </button>
         )}
+        {/* إفصاح بارز قبل جمع الموقع (سياسة Google Play لبيانات الموقع) — يطابق
+            قسم الموقع في /privacy ويظهر قبل الضغط على "بدء العمل" (الموافقة الفعلية). */}
+        {!isWorking && driver.status !== "busy" && (
+          <p className="text-xs text-center mt-2 leading-relaxed" style={{ color: "var(--muted)" }}>
+            📍 عند بدء العمل يُشارَك موقعك الحالي مع سُكّر كل ~٢٥ ثانية أثناء عملك فقط، لترشيحك لأقرب
+            طلبات التوصيل. يتوقف فور &quot;إنهاء العمل&quot;.{" "}
+            <Link href="/privacy" className="underline">التفاصيل</Link>
+          </p>
+        )}
         {driver.status === "busy" && (
           <p className="text-sm text-center" style={{ color: "var(--muted)" }}>
             الحالة "مشغول" تُحدَّد تلقائياً أثناء تنفيذ توصيل — لا يمكن تغييرها يدوياً.
