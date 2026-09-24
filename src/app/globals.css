@@ -8,7 +8,8 @@
 @tailwind utilities;
 
 :root {
-  --cocoa: #4A2C2A;
+  --cocoa: #4A2C2A;          /* Chocolate — العناوين، النص الأساسي، الأزرار */
+  --mocha: #6E4A45;          /* Mocha — النصوص الثانوية فقط */
   --cream: #FBF3EF;
   --peony: #E8C0B6;
   --peony-light: #F3DDD6;
@@ -18,13 +19,17 @@
   --honey: #E0A04F;
   --white: #FFFFFF;
   --line: #EFDCD5;
-  --muted: #8A6A64;
+  --muted: var(--mocha);     /* النص الثانوي = Mocha (كان #8A6A64 خارج المحايدات المعتمدة) */
+  --primary: var(--peony);   /* Peony هو اللون الأساسي (Primary) للهوية */
+  --primary-light: var(--peony-light);
 
   --bg: var(--cream);
   --card: var(--white);
   --border: var(--line);
   --text: var(--cocoa);
-  --gold: var(--peach-ink);
+  /* --gold: اسم قديم يُستهلك كلون عناوين/نص بارز (61 موضعاً) وخلفية أزرار (24) —
+     دوره = Chocolate حسب دليل الهوية، لا لون أساسي (الأساسي Peony). */
+  --gold: var(--cocoa);
   --gold-light: var(--peony-light);
 
   --font-ar: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
