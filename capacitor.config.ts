@@ -12,6 +12,9 @@ const config: CapacitorConfig = {
     url: "https://sukkar-driver.vercel.app",
     androidScheme: "https",
     cleartext: false,
+    // يُعرض بدل صفحة خطأ WebView الافتراضية لو تعذّر تحميل الرابط البعيد
+    // (مثلاً فتح التطبيق لأول مرة بلا اتصال) — راجع www/offline.html.
+    errorPath: "offline.html",
   },
 };
 

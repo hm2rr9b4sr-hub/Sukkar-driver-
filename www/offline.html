@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<!--
+  server.errorPath بـcapacitor.config.ts — يظهر فقط لو فشل تحميل
+  https://sukkar-driver.vercel.app (غالباً: لا اتصال عند فتح التطبيق). زر "إعادة المحاولة"
+  يعيد التوجيه للرابط الحي، ويُعاد المحاولة تلقائياً عند عودة الاتصال.
+-->
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>سُكّر</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #FBF3EF;
+      font-family: -apple-system, system-ui, sans-serif;
+      color: #8A6A64;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+    .wrap { text-align: center; max-width: 320px; }
+    .emoji { font-size: 56px; }
+    .brand { color: #A5604F; font-weight: 900; font-size: 22px; margin-top: 8px; }
+    h1 { font-size: 18px; color: #5a3f3a; margin: 20px 0 8px; }
+    p { font-size: 14px; line-height: 1.7; margin: 0 0 20px; }
+    button {
+      background: #A5604F; color: #fff; border: 0; border-radius: 12px;
+      padding: 12px 28px; font-size: 16px; font-weight: 700; font-family: inherit;
+    }
+    button:active { opacity: .8; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="emoji">🛵</div>
+    <div class="brand">سُكّر</div>
+    <h1>لا يوجد اتصال بالإنترنت</h1>
+    <p>تحقّق من اتصالك بالشبكة ثم أعد المحاولة.</p>
+    <button type="button" onclick="retry()">إعادة المحاولة</button>
+  </div>
+  <script>
+    function retry() { window.location.href = "https://sukkar-driver.vercel.app"; }
+    window.addEventListener("online", retry);
+  </script>
+</body>
+</html>

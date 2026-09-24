@@ -43,13 +43,19 @@
       </array>
     </dict>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>يستخدم تطبيق مندوب سُكّر الكاميرا لالتقاط صور إثبات التسليم أو تقارير المشكلات.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>يستخدم تطبيق مندوب سُكّر موقعك أثناء وضع "متاح" فقط لإسناد الطلبات القريبة ومتابعة التوصيل، ويتوقف عند "غير متصل".</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>يستخدم تطبيق مندوب سُكّر مكتبة الصور لإرفاق صور إثبات التسليم أو تقارير المشكلات.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
