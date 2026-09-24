@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  أيقونة إشعارات Push بشريط الحالة (small icon) — كب كيك الكرزة من شعار سُكّر
+  بصيغة صورة ظلية (silhouette). أندرويد يستخدم قناة الشفافية فقط ويلوّنها
+  بنفسه، فأي أيقونة ملوّنة (مثل ic_launcher) تظهر مربعاً أبيض. مُسجَّلة
+  كأيقونة FCM الافتراضية في AndroidManifest.xml.
+  المصدر: شبكة 24×24 (مساحة أيقونة الحالة القياسية)، مُزاحة 0.5 للأسفل
+  لتبقى ضمن هامش 1dp.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group android:translateY="0.5">
+        <path android:fillColor="#FFFFFFFF" android:pathData="M10.2,3.9a1.8,1.8 0 1,0 3.6,0a1.8,1.8 0 1,0 -3.6,0z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M12.9,2.4C13.4,1.5 14.3,0.9 15.4,0.8L15.5,1.5C14.6,1.6 13.9,2.1 13.5,2.8Z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M9.2,8.3C9.1,6.7 10.5,5.9 12,5.9C13.5,5.9 14.9,6.7 14.8,8.3Z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M7.4,10.8C7.0,9.3 8.3,8.6 9.6,8.7L14.4,8.7C15.7,8.6 17.0,9.3 16.6,10.8Z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M5.5,13.5C4.9,11.9 6.4,11.1 7.8,11.2L16.2,11.2C17.6,11.1 19.1,11.9 18.5,13.5Z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M6.00,14.0L8.59,14.0L9.49,22.2L7.80,22.2Z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M9.14,14.0L11.72,14.0L11.72,22.2L10.04,22.2Z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M12.28,14.0L14.86,14.0L13.96,22.2L12.27,22.2Z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M15.41,14.0L18.00,14.0L16.20,22.2L14.51,22.2Z" />
+    </group>
+</vector>
