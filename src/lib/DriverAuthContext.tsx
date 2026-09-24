@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { fetchMyDriverProfile, UIDriverProfile } from "@/lib/data";
+import { unregisterFromPush } from "@/lib/nativePush";
 
 // Driver Onboarding — Account First, Approval Before Work: الدخول والتسجيل
 // كلاهما الآن عبر OTP (هاتف + رمز عبر SMS) لا بريد/كلمة مرور يعرفها
@@ -141,6 +142,7 @@ export function DriverAuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
+    await unregisterFromPush().catch(() => {});
     await supabase.auth.signOut();
     setDriver(null);
   }

@@ -16,6 +16,12 @@ const config: CapacitorConfig = {
     // (مثلاً فتح التطبيق لأول مرة بلا اتصال) — راجع www/offline.html.
     errorPath: "offline.html",
   },
+  plugins: {
+    // إظهار الإشعار حتى والتطبيق مفتوح بالمقدمة (iOS لا يعرضه افتراضياً).
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"],
+    },
+  },
 };
 
 export default config;

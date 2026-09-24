@@ -57,6 +57,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `driver-update-failed: ${driverUpdateError.message}` }, { status: 500 });
   }
 
+  // الحذف منطقي (لا cascade من auth.users) — فك ربط أجهزة Push يدوياً حتى
+  // لا يصل أي إشعار لحساب محذوف (migration 0062 بمستودع sukkar).
+  await supabase.from("push_devices").delete().eq("user_id", caller.id);
+
   const banRes = await fetch(`${url}/auth/v1/admin/users/${caller.id}`, {
     method: "PUT",
     headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
