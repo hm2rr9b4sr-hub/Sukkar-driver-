@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">سُكّر</string>
-    <string name="title_activity_main">سُكّر</string>
+    <string name="app_name">مندوب سُكّر</string>
+    <string name="title_activity_main">مندوب سُكّر</string>
     <string name="package_name">com.sukkar.driver</string>
     <string name="custom_url_scheme">com.sukkar.driver</string>
 </resources>

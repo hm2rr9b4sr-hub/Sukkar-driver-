@@ -3,6 +3,8 @@ import "./globals.css";
 import { DriverAuthProvider } from "@/lib/DriverAuthContext";
 import TopBar from "./TopBar";
 import PushRegistration from "./PushRegistration";
+import CapacitorBackButton from "./CapacitorBackButton";
+import OfflineBanner from "./OfflineBanner";
 
 export const metadata: Metadata = {
   title: "سُكّر",
@@ -32,6 +34,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ar" dir="rtl">
       <body>
+        <CapacitorBackButton />
+        <OfflineBanner />
         <DriverAuthProvider>
           <PushRegistration />
           <div className="min-h-screen" style={{ background: "var(--bg)", color: "var(--text)" }}>
