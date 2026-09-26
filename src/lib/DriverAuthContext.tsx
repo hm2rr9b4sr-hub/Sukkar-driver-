@@ -68,11 +68,20 @@ export function DriverAuthProvider({ children }: { children: ReactNode }) {
   }, [supabase, loadDriver]);
 
   async function requestOtp(phone: string, purpose: "driver_signup" | "driver_login") {
-    const res = await fetch("/api/auth/otp/request", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, purpose }),
-    });
+    // ⚠️ fetch نفسه (لا فقط استجابة غير ناجحة) قد يرفض الوعد — انقطاع شبكة،
+    // أو حظر من إضافة/VPN بالمتصفح (net::ERR_BLOCKED_BY_CLIENT، مُشاهَد فعلياً
+    // باختبار حي). بلا try/catch هنا يبقى الزر معلَّقاً على "جارٍ..." للأبد
+    // لأن setSubmitting(false) بالصفحة المستدعية لا يُنفَّذ أبداً.
+    let res: Response;
+    try {
+      res = await fetch("/api/auth/otp/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, purpose }),
+      });
+    } catch {
+      return { error: "تعذّر الاتصال بالسيرفر — تحقّق من الإنترنت (أو أي VPN/إضافة تحظر الطلب) وحاول مجدداً" };
+    }
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       const messages: Record<string, string> = {
@@ -102,11 +111,16 @@ export function DriverAuthProvider({ children }: { children: ReactNode }) {
   async function verifySignupOtp(args: {
     phone: string; code: string; fullName: string; regionId: string; vehicleType?: string; plateNumber?: string;
   }) {
-    const res = await fetch("/api/auth/otp/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...args, purpose: "driver_signup" }),
-    });
+    let res: Response;
+    try {
+      res = await fetch("/api/auth/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...args, purpose: "driver_signup" }),
+      });
+    } catch {
+      return { error: "تعذّر الاتصال بالسيرفر — تحقّق من الإنترنت (أو أي VPN/إضافة تحظر الطلب) وحاول مجدداً" };
+    }
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       const messages: Record<string, string> = {
@@ -122,11 +136,16 @@ export function DriverAuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function verifyLoginOtp(phone: string, code: string) {
-    const res = await fetch("/api/auth/otp/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, code, purpose: "driver_login" }),
-    });
+    let res: Response;
+    try {
+      res = await fetch("/api/auth/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, code, purpose: "driver_login" }),
+      });
+    } catch {
+      return { error: "تعذّر الاتصال بالسيرفر — تحقّق من الإنترنت (أو أي VPN/إضافة تحظر الطلب) وحاول مجدداً" };
+    }
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       const messages: Record<string, string> = {
