@@ -6,7 +6,7 @@ export default function PrivacyPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-10 space-y-5">
       <h1 className="text-xl font-black" style={{ color: "var(--gold)" }}>سياسة الخصوصية — سُكّر Driver</h1>
-      <p className="text-xs" style={{ color: "var(--muted)" }}>آخر تحديث: سبتمبر 2026 — مسوَّدة أولية، بانتظار مراجعة قانونية نهائية.</p>
+      <p className="text-xs" style={{ color: "var(--muted)" }}>آخر تحديث: سبتمبر 2026.</p>
 
       <div className="space-y-5 text-sm leading-relaxed">
         <section>
