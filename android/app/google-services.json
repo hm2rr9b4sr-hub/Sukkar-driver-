@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "290621524104",
+    "project_id": "sukkar-4feaf",
+    "storage_bucket": "sukkar-4feaf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:290621524104:android:0cbab56c367abee62e773d",
+        "android_client_info": {
+          "package_name": "com.sukkar.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBw_NKL-gjCDmftalw6nHnmK6LzGIVnHqs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:290621524104:android:ac422d8d95d680772e773d",
+        "android_client_info": {
+          "package_name": "com.sukkar.driver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBw_NKL-gjCDmftalw6nHnmK6LzGIVnHqs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
