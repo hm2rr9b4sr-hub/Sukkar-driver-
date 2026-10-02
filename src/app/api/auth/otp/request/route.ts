@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
   const smsResult = await getSmsProvider().sendSms(
     digits,
-    `كود التحقق الخاص بك في مندوب سُكّر: ${code} — صالح لمدة 5 دقائق. لا تشاركه مع أحد.`
+    `سُكّر: رمز التحقق ${code}. صالح 5 دقائق، لا تشاركه مع أحد.`
   );
   if (!smsResult.ok) {
     return NextResponse.json({ error: smsResult.error ?? "sms-send-failed" }, { status: 502 });

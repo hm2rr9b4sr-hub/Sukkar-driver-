@@ -1,17 +1,9 @@
 import "server-only";
 import type { SmsProvider, SmsSendResult } from "./types";
 
-// نقطة الربط الفعلية مع D7 Networks — غير مُفعَّلة الآن عمداً (لا حساب،
-// لا API key فعلي بعد — راجع تقرير التحقق النهائي بهذه الجلسة). الصيغة هنا
-// مطابقة حرفياً لتوثيق D7 الرسمي (POST /messages/v1/send، Bearer token) —
-// حقيقية وقابلة للتشغيل فوراً بمجرد توفر D7_API_TOKEN وD7_SENDER_ID، لا
-// تحتاج أي إعادة كتابة لاحقاً، فقط تزويدها بالمتغيّرين.
-//
-// ⚠️ لم يُختبَر هذا الملف بإرسال فعلي — لا حساب D7 حالياً. شكل الاستجابة
-// (status: "accepted"/"rejected" بالجسم، detail بأخطاء 401/402/422) مطابق
-// لتوثيق D7 الرسمي لكن لم يُتحقَّق ضد استجابة حقيقية. أول استخدام حقيقي يجب
-// أن يكون اختباراً يدوياً مباشراً (رقم حقيقي على كل شبكة يمنية) قبل
-// الاعتماد عليه بالإنتاج.
+// نقطة الربط مع D7 Networks (POST /messages/v1/send، Bearer token) — مُختبَرة
+// بإرسال فعلي. data_coding=unicode إلزامي للعربي (غير ذلك يصل "؟؟؟")، والرسالة
+// يجب أن تبقى ≤70 حرفاً: unicode متعدد الأجزاء فشل تسليمه فعلياً على الشبكات.
 const D7_ENDPOINT = "https://api.d7networks.com/messages/v1/send";
 
 // توثيق D7: { detail: {code,message} } أو { detail: [{code,message}, ...] } — نأخذ أول code متاح
@@ -48,7 +40,7 @@ export class D7SmsProvider implements SmsProvider {
               recipients: [`+${toPhoneDigits}`],
               content: message,
               msg_type: "text",
-              data_coding: "text",
+              data_coding: "unicode",
             },
           ],
         }),
