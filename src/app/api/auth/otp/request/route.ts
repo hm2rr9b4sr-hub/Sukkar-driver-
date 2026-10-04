@@ -34,6 +34,14 @@ export async function POST(req: NextRequest) {
   if (purpose === "driver_signup" && existingDriver) {
     return NextResponse.json({ error: "account-already-exists" }, { status: 409 });
   }
+  // رقم واحد = حساب واحد عبر كل التطبيقات (عميل/متجر/أدمن/مندوب) — لا نرسل كوداً لرقم
+  // يملكه عميل أو متجر. القاعدة (trigger في drivers) هي خط الدفاع الفعلي.
+  if (purpose === "driver_signup") {
+    const { data: available } = await supabase.rpc("phone_available", { p_phone: digits });
+    if (available === false) {
+      return NextResponse.json({ error: "phone-already-registered" }, { status: 409 });
+    }
+  }
   if (purpose === "driver_login" && !existingDriver) {
     return NextResponse.json({ error: "no-account-found" }, { status: 404 });
   }

@@ -70,6 +70,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "account-already-exists" }, { status: 409 });
     }
 
+    const { data: available } = await supabase.rpc("phone_available", { p_phone: digits });
+    if (available === false) {
+      return NextResponse.json({ error: "phone-already-registered" }, { status: 409 });
+    }
+
     const internalRandomPassword = createHash("sha256").update(`${digits}:${Date.now()}:${Math.random()}`).digest("hex");
     const { data: created, error: createError } = await supabase.auth.admin.createUser({
       email,

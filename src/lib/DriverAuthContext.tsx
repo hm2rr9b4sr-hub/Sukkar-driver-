@@ -86,6 +86,7 @@ export function DriverAuthProvider({ children }: { children: ReactNode }) {
     if (!res.ok) {
       const messages: Record<string, string> = {
         "account-already-exists": "يوجد حساب مسجَّل بهذا الرقم بالفعل — جرّب تسجيل الدخول",
+        "phone-already-registered": "هذا الرقم مسجَّل بحساب آخر في سُكّر (عميل أو متجر) — لا يمكن لرقم واحد امتلاك أكثر من حساب، استخدم رقماً مختلفاً",
         "no-account-found": "لا يوجد حساب بهذا الرقم — سجّل حساباً جديداً أولاً",
         "too-many-requests": "انتظر دقيقة قبل طلب رمز جديد",
         "invalid-phone": "رقم الهاتف غير صحيح",
@@ -129,6 +130,7 @@ export function DriverAuthProvider({ children }: { children: ReactNode }) {
         "otp-not-requested": "لم يُطلَب رمز لهذا الرقم — ابدأ من جديد",
         "too-many-attempts": "محاولات كثيرة خاطئة — اطلب رمزاً جديداً",
         "account-already-exists": "يوجد حساب مسجَّل بهذا الرقم بالفعل",
+        "phone-already-registered": "هذا الرقم مسجَّل بحساب آخر في سُكّر — استخدم رقماً مختلفاً",
       };
       return { error: messages[body.error] ?? (body.error ?? "تعذّر إتمام التسجيل") };
     }
