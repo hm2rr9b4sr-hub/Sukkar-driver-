@@ -7,3 +7,8 @@ out
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+
+# مفتاح توقيع رفع أندرويد — نسخة احتياطية خارج الجهاز، لا يدخل git أبداً
+*.jks
+*.keystore
+keystore.properties
