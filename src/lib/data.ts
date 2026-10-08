@@ -113,13 +113,13 @@ export async function fetchMyDeliveries(): Promise<UIDriverDeliveryDetail[]> {
   }));
 }
 
-export async function fetchMyDeliveryHistory(): Promise<UIDelivery[]> {
+export async function fetchMyDeliveryHistory(): Promise<UIDriverDeliveryDetail[]> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
   const { data, error } = await supabase
     .from("deliveries")
-    .select("id, order_id, region_id, driver_id, status, offer_attempt, offer_expires_at, remaining_amount_snapshot, delivery_fee_snapshot, cash_expected, cash_handed_to_sukkar_at, cash_confirmed_by_sukkar_at, cash_rejected_at, cash_rejection_reason, created_at, orders(order_number)")
+    .select("id, order_id, region_id, driver_id, status, offer_attempt, offer_expires_at, remaining_amount_snapshot, delivery_fee_snapshot, cash_expected, cash_handed_to_sukkar_at, cash_confirmed_by_sukkar_at, cash_rejected_at, cash_rejection_reason, created_at, orders(order_number, customer_phone, customer_lat, customer_lng, delivery_address, stores(name_ar, lat, lng))")
     .eq("driver_id", user.id)
     .eq("status", "delivered")
     .order("created_at", { ascending: false })
@@ -134,6 +134,9 @@ export async function fetchMyDeliveryHistory(): Promise<UIDelivery[]> {
     cashHandedToSukkarAt: d.cash_handed_to_sukkar_at, cashConfirmedBySukkarAt: d.cash_confirmed_by_sukkar_at,
     cashRejectedAt: d.cash_rejected_at, cashRejectionReason: d.cash_rejection_reason,
     createdAt: d.created_at,
+    storeName: d.orders?.stores?.name_ar ?? "", storeLat: d.orders?.stores?.lat ?? null, storeLng: d.orders?.stores?.lng ?? null,
+    storeAddress: null, customerPhone: d.orders?.customer_phone ?? "", customerLat: d.orders?.customer_lat ?? null,
+    customerLng: d.orders?.customer_lng ?? null, deliveryAddress: d.orders?.delivery_address ?? null,
   }));
 }
 

@@ -57,10 +57,7 @@ export default function DriverDeliveryDetailPage() {
       // النشطة فقط) — نسمح بعرض شاشة التسليم/تصريح النقد من سجل التاريخ.
       const { fetchMyDeliveryHistory } = await import("@/lib/data");
       const history = await fetchMyDeliveryHistory();
-      const hFound = history.find((d) => d.id === params.id);
-      if (hFound) {
-        found = { ...hFound, storeName: "", storeLat: null, storeLng: null, storeAddress: null, customerPhone: "", customerLat: null, customerLng: null, deliveryAddress: null };
-      }
+      found = history.find((d) => d.id === params.id) ?? null;
     }
     setDelivery(found);
     setLoading(false);
