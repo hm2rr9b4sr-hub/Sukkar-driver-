@@ -8,11 +8,13 @@ import {
   driverMarkOnTheWay,
   driverMarkDelivered,
   driverReportCashHandoff,
+  driverConfirmReturn,
   driverReportException,
   uploadDeliveryExceptionPhoto,
   UIDriverDeliveryDetail,
   DeliveryExceptionType,
 } from "@/lib/data";
+import { vehicleLabel, tripLabel, vehicleIcon, driverTripEarning } from "@/lib/vehicle";
 
 const EXCEPTION_OPTIONS: { value: DeliveryExceptionType; label: string }[] = [
   { value: "customer_unavailable", label: "عميل غير متجاوب" },
@@ -118,6 +120,20 @@ export default function DriverDeliveryDetailPage() {
     await load();
   }
 
+  // ذهاب وعودة: تأكيد إعادة أدوات المتجر — منفصل عن تسليم الطلب ولا أثر مالي له
+  async function handleConfirmReturn() {
+    if (!delivery) return;
+    setBusy(true);
+    setActionError(null);
+    const { ok, error } = await driverConfirmReturn(delivery.id);
+    setBusy(false);
+    if (!ok) {
+      setActionError(error ?? "تعذّر تنفيذ العملية");
+      return;
+    }
+    await load();
+  }
+
   async function handleSubmitException() {
     if (!delivery) return;
     setExceptionSubmitting(true);
@@ -189,6 +205,22 @@ export default function DriverDeliveryDetailPage() {
         <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
           (المتبقي على المنتج {delivery.remainingAmountSnapshot} + رسم التوصيل {delivery.deliveryFeeSnapshot})
         </p>
+        <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+          الباقي على المنتج يُسلَّم لسُكّر، ورسم التوصيل لك.
+        </p>
+      </div>
+
+      {/* المركبة ونوع الرحلة */}
+      <div className="rounded-2xl p-4 border flex flex-col gap-1" style={{ background: "var(--card)", borderColor: "var(--border)" }} data-testid="trip-info">
+        <p className="font-bold">
+          {vehicleIcon(delivery.requestedVehicle)} {vehicleLabel(delivery.requestedVehicle)} · {tripLabel(delivery.tripType)}
+        </p>
+        <p className="text-sm" style={{ color: "var(--muted)" }}>أجرتك لهذه الرحلة: {driverTripEarning(delivery)} ريال</p>
+        {delivery.tripType === "round_trip" && (
+          <p className="text-xs" style={{ color: "var(--muted)" }}>
+            ↩️ بعد التسليم عليك العودة لاسترجاع أدوات المتجر، وتؤكد ذلك بزر منفصل.
+          </p>
+        )}
       </div>
 
       {actionError && (
@@ -267,6 +299,21 @@ export default function DriverDeliveryDetailPage() {
             <p className="text-center font-semibold" style={{ color: "var(--muted)" }}>بانتظار تأكيد سُكّر</p>
           ) : (
             <p className="text-center font-semibold text-green-700">✓ تم التأكيد</p>
+          )}
+          {delivery.tripType === "round_trip" && (
+            delivery.returnCompletedAt ? (
+              <p className="text-center font-semibold text-green-700" data-testid="return-done">✓ تمت العودة بأدوات المتجر</p>
+            ) : (
+              <button
+                onClick={handleConfirmReturn}
+                disabled={busy}
+                className="w-full py-3.5 rounded-2xl font-bold text-white disabled:opacity-60"
+                style={{ background: "var(--gold)" }}
+                data-testid="confirm-return"
+              >
+                ↩️ أكّد عودتي بأدوات المتجر
+              </button>
+            )
           )}
         </div>
       )}

@@ -6,11 +6,13 @@ import { useDriverAuth } from "@/lib/DriverAuthContext";
 import { createClient } from "@/lib/supabase/client";
 import {
   fetchMyDeliveries,
+  fetchMyDeliveryHistory,
   driverSetStatus,
   driverUpdateLocation,
   driverRespondToOffer,
   UIDriverDeliveryDetail,
 } from "@/lib/data";
+import { vehicleLabel, tripLabel, vehicleIcon } from "@/lib/vehicle";
 
 const STATUS_LABELS: Record<string, string> = {
   assigned: "بانتظار ردّك",
@@ -45,10 +47,14 @@ export default function DriverHomePage() {
     if (!loading && !driver) router.replace("/login");
   }, [loading, driver, router]);
 
+  // ذهاب وعودة: توصيلات سُلِّمت ولم تُؤكَّد عودة أدوات المتجر — تظهر هنا ليصل إليها المندوب بعد مغادرة شاشة التوصيلة (لا تمنع استلام طلبات جديدة)
+  const [pendingReturns, setPendingReturns] = useState<UIDriverDeliveryDetail[]>([]);
+
   const loadDeliveries = useCallback(async () => {
     setDeliveriesLoading(true);
-    const list = await fetchMyDeliveries();
+    const [list, history] = await Promise.all([fetchMyDeliveries(), fetchMyDeliveryHistory()]);
     setDeliveries(list);
+    setPendingReturns(history.filter((d) => d.tripType === "round_trip" && !d.returnCompletedAt));
     setDeliveriesLoading(false);
   }, []);
 
@@ -293,11 +299,31 @@ export default function DriverHomePage() {
                   </span>
                 </div>
                 <p className="text-sm" style={{ color: "var(--muted)" }}>{d.storeName}</p>
+                {(d.requestedVehicle === "car" || d.tripType === "round_trip") && (
+                  <p className="text-xs font-semibold mt-1">{vehicleIcon(d.requestedVehicle)} {vehicleLabel(d.requestedVehicle)} · {tripLabel(d.tripType)}</p>
+                )}
               </Link>
             ))}
           </div>
         )}
       </div>
+
+      {pendingReturns.length > 0 && (
+        <div data-testid="pending-returns">
+          <h2 className="font-bold mb-2 px-1">↩️ بانتظار تأكيد عودة الأدوات</h2>
+          <div className="flex flex-col gap-3">
+            {pendingReturns.map((d) => (
+              <Link key={d.id} href={`/deliveries/${d.id}`} className="block rounded-2xl p-4 border" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold">#{d.orderNumber}</span>
+                  <span className="text-xs font-semibold" style={{ color: "var(--muted)" }}>{d.storeName}</span>
+                </div>
+                <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>أكّد عودتك بأدوات المتجر خلال 24 ساعة من التسليم.</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Link
         href="/earnings"

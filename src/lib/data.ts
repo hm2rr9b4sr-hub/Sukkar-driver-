@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import type { VehicleCategory, TripType } from "@/lib/vehicle";
 
 // مصدر الحقيقة لكل استعلامات البيانات بتطبيق Sukkar Driver — طبقة مستقلة
 // عن lib/data.ts لموقع سُكّر الرئيسي (كانت مصدر هذا الملف قبل فصل تطبيق
@@ -27,6 +28,10 @@ export interface UIDelivery {
   cashRejectedAt: string | null;
   cashRejectionReason: string | null;
   createdAt: string;
+  requestedVehicle: VehicleCategory;   // 0078: المركبة التي طلبها المتجر
+  tripType: TripType;                  // ذهاب فقط | ذهاب وعودة (العودة التزام باسترجاع أدوات المتجر)
+  tripFee: number | null;              // السعر المعتمد للرحلة = أجرتك؛ null = صف قديم (رسم التوصيل)
+  returnCompletedAt: string | null;    // تأكيدك لاكتمال العودة؛ null = لم تُؤكَّد بعد
 }
 
 export type DriverApprovalStatus = "pending" | "approved" | "rejected";
@@ -82,24 +87,11 @@ export interface UIDriverDeliveryDetail extends UIDelivery {
   customerPhone: string; customerLat: number | null; customerLng: number | null; deliveryAddress: string | null;
 }
 
-export async function fetchMyDeliveries(): Promise<UIDriverDeliveryDetail[]> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
-  const { data, error } = await supabase
-    .from("deliveries")
-    .select(`
-      id, order_id, region_id, driver_id, status, offer_attempt, offer_expires_at,
-      remaining_amount_snapshot, delivery_fee_snapshot, cash_expected,
-      cash_handed_to_sukkar_at, cash_confirmed_by_sukkar_at, cash_rejected_at, cash_rejection_reason, created_at,
-      orders(order_number, customer_phone, customer_lat, customer_lng, delivery_address, stores(name_ar, lat, lng))
-    `)
-    .eq("driver_id", user.id)
-    .in("status", ["assigned", "accepted", "picked_up", "on_the_way"])
-    .order("created_at", { ascending: true });
-  if (error || !data) return [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data as any[]).map((d) => ({
+const NEW_DELIVERY_COLS = ", requested_vehicle, trip_type, return_completed_at";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapDelivery(d: any): UIDriverDeliveryDetail {
+  return {
     id: d.id, orderId: d.order_id, orderNumber: d.orders?.order_number ?? "", regionId: d.region_id,
     driverId: d.driver_id, driverName: null, status: d.status, offerAttempt: d.offer_attempt,
     offerExpiresAt: d.offer_expires_at, remainingAmountSnapshot: d.remaining_amount_snapshot,
@@ -107,37 +99,47 @@ export async function fetchMyDeliveries(): Promise<UIDriverDeliveryDetail[]> {
     cashHandedToSukkarAt: d.cash_handed_to_sukkar_at, cashConfirmedBySukkarAt: d.cash_confirmed_by_sukkar_at,
     cashRejectedAt: d.cash_rejected_at, cashRejectionReason: d.cash_rejection_reason,
     createdAt: d.created_at,
+    requestedVehicle: d.requested_vehicle === "car" ? "car" : "meter",
+    tripType: d.trip_type === "round_trip" ? "round_trip" : "one_way",
+    tripFee: null,
+    returnCompletedAt: d.return_completed_at ?? null,
     storeName: d.orders?.stores?.name_ar ?? "", storeLat: d.orders?.stores?.lat ?? null, storeLng: d.orders?.stores?.lng ?? null,
     storeAddress: null, customerPhone: d.orders?.customer_phone ?? "", customerLat: d.orders?.customer_lat ?? null,
     customerLng: d.orders?.customer_lng ?? null, deliveryAddress: d.orders?.delivery_address ?? null,
-  }));
+  };
+}
+
+export async function fetchMyDeliveries(): Promise<UIDriverDeliveryDetail[]> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const base = `id, order_id, region_id, driver_id, status, offer_attempt, offer_expires_at,
+      remaining_amount_snapshot, delivery_fee_snapshot, cash_expected,
+      cash_handed_to_sukkar_at, cash_confirmed_by_sukkar_at, cash_rejected_at, cash_rejection_reason, created_at`;
+  const tail = `, orders(order_number, customer_phone, customer_lat, customer_lng, delivery_address, stores(name_ar, lat, lng))`;
+  const run = (cols: string) => supabase
+    .from("deliveries").select(cols)
+    .eq("driver_id", user.id)
+    .in("status", ["assigned", "accepted", "picked_up", "on_the_way"])
+    .order("created_at", { ascending: true });
+  let res = await run(base + NEW_DELIVERY_COLS + tail);
+  if (res.error) res = await run(base + tail);    // قبل تطبيق 0078 على القاعدة: التطبيق يبقى يعمل
+  if (res.error || !res.data) return [];
+  return (res.data as unknown[]).map(mapDelivery);
 }
 
 export async function fetchMyDeliveryHistory(): Promise<UIDriverDeliveryDetail[]> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
-  const { data, error } = await supabase
-    .from("deliveries")
-    .select("id, order_id, region_id, driver_id, status, offer_attempt, offer_expires_at, remaining_amount_snapshot, delivery_fee_snapshot, cash_expected, cash_handed_to_sukkar_at, cash_confirmed_by_sukkar_at, cash_rejected_at, cash_rejection_reason, created_at, orders(order_number, customer_phone, customer_lat, customer_lng, delivery_address, stores(name_ar, lat, lng))")
-    .eq("driver_id", user.id)
-    .eq("status", "delivered")
-    .order("created_at", { ascending: false })
-    .limit(100);
-  if (error || !data) return [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data as any[]).map((d) => ({
-    id: d.id, orderId: d.order_id, orderNumber: d.orders?.order_number ?? "", regionId: d.region_id,
-    driverId: d.driver_id, driverName: null, status: d.status, offerAttempt: d.offer_attempt,
-    offerExpiresAt: d.offer_expires_at, remainingAmountSnapshot: d.remaining_amount_snapshot,
-    deliveryFeeSnapshot: d.delivery_fee_snapshot, cashExpected: d.cash_expected,
-    cashHandedToSukkarAt: d.cash_handed_to_sukkar_at, cashConfirmedBySukkarAt: d.cash_confirmed_by_sukkar_at,
-    cashRejectedAt: d.cash_rejected_at, cashRejectionReason: d.cash_rejection_reason,
-    createdAt: d.created_at,
-    storeName: d.orders?.stores?.name_ar ?? "", storeLat: d.orders?.stores?.lat ?? null, storeLng: d.orders?.stores?.lng ?? null,
-    storeAddress: null, customerPhone: d.orders?.customer_phone ?? "", customerLat: d.orders?.customer_lat ?? null,
-    customerLng: d.orders?.customer_lng ?? null, deliveryAddress: d.orders?.delivery_address ?? null,
-  }));
+  const base = "id, order_id, region_id, driver_id, status, offer_attempt, offer_expires_at, remaining_amount_snapshot, delivery_fee_snapshot, cash_expected, cash_handed_to_sukkar_at, cash_confirmed_by_sukkar_at, cash_rejected_at, cash_rejection_reason, created_at";
+  const tail = ", orders(order_number, customer_phone, customer_lat, customer_lng, delivery_address, stores(name_ar, lat, lng))";
+  const run = (cols: string) => supabase.from("deliveries").select(cols)
+    .eq("driver_id", user.id).eq("status", "delivered").order("created_at", { ascending: false }).limit(100);
+  let res = await run(base + NEW_DELIVERY_COLS + tail);
+  if (res.error) res = await run(base + tail);
+  if (res.error || !res.data) return [];
+  return (res.data as unknown[]).map(mapDelivery);
 }
 
 export async function driverRespondToOffer(deliveryId: string, accept: boolean): Promise<{ ok: boolean; error: string | null }> {
@@ -179,6 +181,14 @@ export async function driverReportCashHandoff(deliveryId: string): Promise<{ ok:
   if (error) return { ok: false, error: error.message };
   const result = data as { ok: boolean; error?: string };
   return { ok: result.ok, error: result.error ?? null };
+}
+
+// ذهاب وعودة: تأكيد المندوب أنه أعاد أدوات المتجر (0078) — منفصل عن تسليم الطلب، لا أثر مالي.
+export async function driverConfirmReturn(deliveryId: string): Promise<{ ok: boolean; error: string | null }> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("driver_confirm_return", { p_delivery_id: deliveryId });
+  if (error) return { ok: false, error: error.message };
+  return { ok: (data as { ok?: boolean })?.ok === true, error: null };
 }
 
 export async function driverReportException(

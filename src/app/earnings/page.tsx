@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDriverAuth } from "@/lib/DriverAuthContext";
 import { fetchMyDeliveryHistory, UIDelivery } from "@/lib/data";
+import { driverTripEarning } from "@/lib/vehicle";
 
 // شاشة أرباح المندوب — لا تعرض ولا تجلب إطلاقاً عمولة سُكّر أو مستحقات
 // متاجر أخرى. الدوال المتاحة لجانب المندوب في lib/data.ts أصلاً لا تمنح
@@ -29,7 +30,7 @@ export default function DriverEarningsPage() {
     return <p className="text-center py-10" style={{ color: "var(--muted)" }}>جارٍ التحميل...</p>;
   }
 
-  const totalEarnings = history.reduce((sum, d) => sum + (d.deliveryFeeSnapshot ?? 0), 0);
+  const totalEarnings = history.reduce((sum, d) => sum + driverTripEarning(d), 0);
   const pendingConfirmation = history
     .filter((d) => !d.cashConfirmedBySukkarAt)
     .reduce((sum, d) => sum + (d.remainingAmountSnapshot ?? 0), 0);
@@ -64,7 +65,7 @@ export default function DriverEarningsPage() {
                 </div>
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-sm font-semibold" style={{ color: "var(--gold)" }}>
-                    {d.deliveryFeeSnapshot} ريال
+                    {driverTripEarning(d)} ريال
                   </span>
                   <span className="text-xs font-semibold">
                     {d.cashConfirmedBySukkarAt
