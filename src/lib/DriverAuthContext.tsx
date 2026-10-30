@@ -4,6 +4,26 @@ import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { fetchMyDriverProfile, UIDriverProfile } from "@/lib/data";
 import { unregisterFromPush } from "@/lib/nativePush";
+import { driverAuthErrorMessage } from "@/lib/driverAuth/messages";
+
+// تدفق الدخول الجديد (مسارات /api/auth/driver/*): تفعيل/تسجيل أول بـOTP ثم كلمة مرور، ثم دخول يومي بكلمة
+// المرور بلا OTP. دوال OTP-عند-كل-دخول القديمة أدناه باقية بلا استخدام من الصفحات (لا حذف الآن؛ تُقاعَد
+// مع مساراتها وجدول otp_codes بعد نجاح الجديد).
+async function postJson(path: string, payload: unknown): Promise<{ ok: boolean; body: Record<string, unknown> }> {
+  try {
+    const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    return { ok: res.ok, body: (await res.json().catch(() => ({}))) as Record<string, unknown> };
+  } catch {
+    return { ok: false, body: { error: "network" } };
+  }
+}
+const asMsg = (b: Record<string, unknown>) =>
+  driverAuthErrorMessage(b.error as string | undefined, { issue: b.issue as string | undefined, retryAfter: b.retryAfter as number | undefined });
+
+export interface OnboardingCompleteArgs {
+  phone: string; ticket: string; password: string;
+  fullName?: string; regionId?: string; vehicleType?: string; plateNumber?: string;
+}
 
 // Driver Onboarding — Account First, Approval Before Work: الدخول والتسجيل
 // كلاهما الآن عبر OTP (هاتف + رمز عبر SMS) لا بريد/كلمة مرور يعرفها
@@ -24,6 +44,10 @@ interface DriverAuthCtx {
     phone: string; code: string; fullName: string; regionId: string; vehicleType?: string; plateNumber?: string;
   }) => Promise<{ error: string | null }>;
   verifyLoginOtp: (phone: string, code: string) => Promise<{ error: string | null }>;
+  loginWithPassword: (phone: string, password: string) => Promise<{ error: string | null }>;
+  onboardingRequest: (phone: string) => Promise<{ error: string | null }>;
+  onboardingVerify: (phone: string, code: string) => Promise<{ error: string | null; ticket?: string; mode?: "activate" | "signup" }>;
+  onboardingComplete: (args: OnboardingCompleteArgs) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
   refreshDriver: () => Promise<void>;
 }
@@ -34,6 +58,10 @@ const DriverAuthContext = createContext<DriverAuthCtx>({
   requestOtp: async () => ({ error: "not-ready" }),
   verifySignupOtp: async () => ({ error: "not-ready" }),
   verifyLoginOtp: async () => ({ error: "not-ready" }),
+  loginWithPassword: async () => ({ error: "not-ready" }),
+  onboardingRequest: async () => ({ error: "not-ready" }),
+  onboardingVerify: async () => ({ error: "not-ready" }),
+  onboardingComplete: async () => ({ error: "not-ready" }),
   logout: async () => {},
   refreshDriver: async () => {},
 });
@@ -162,6 +190,35 @@ export function DriverAuthProvider({ children }: { children: ReactNode }) {
     return consumeSessionToken(body.email, body.token);
   }
 
+  // الدخول اليومي: الخادم يتحقق من كلمة المرور ويحجز المحاولة، ويسلّم توكنات جلسة Supabase حقيقية.
+  async function loginWithPassword(phone: string, password: string) {
+    const { ok, body } = await postJson("/api/auth/driver/login", { phone, password });
+    const session = body.session as { access_token?: string; refresh_token?: string } | undefined;
+    if (!ok || !session?.access_token || !session.refresh_token) return { error: asMsg(body) };
+    const { error } = await supabase.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token });
+    if (error) return { error: "تعذّر إتمام تسجيل الدخول — حاول مجدداً" };
+    setDriver(await fetchMyDriverProfile());
+    return { error: null };
+  }
+
+  async function onboardingRequest(phone: string) {
+    const { ok, body } = await postJson("/api/auth/driver/onboarding/request", { phone });
+    return { error: ok ? null : asMsg(body) };
+  }
+
+  async function onboardingVerify(phone: string, code: string) {
+    const { ok, body } = await postJson("/api/auth/driver/onboarding/verify", { phone, code });
+    if (!ok || typeof body.ticket !== "string") return { error: asMsg(body) };
+    return { error: null, ticket: body.ticket, mode: body.mode as "activate" | "signup" };
+  }
+
+  // يُنشئ الحساب/يعيّن كلمة المرور ثم يدخل مباشرة بنفس الكلمة (مسار الدخول العادي نفسه).
+  async function onboardingComplete(args: OnboardingCompleteArgs) {
+    const { ok, body } = await postJson("/api/auth/driver/onboarding/complete", args);
+    if (!ok) return { error: asMsg(body) };
+    return loginWithPassword(args.phone, args.password);
+  }
+
   async function logout() {
     await unregisterFromPush().catch(() => {});
     await supabase.auth.signOut();
@@ -174,7 +231,7 @@ export function DriverAuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <DriverAuthContext.Provider value={{ driver, loading, requestOtp, verifySignupOtp, verifyLoginOtp, logout, refreshDriver }}>
+    <DriverAuthContext.Provider value={{ driver, loading, requestOtp, verifySignupOtp, verifyLoginOtp, loginWithPassword, onboardingRequest, onboardingVerify, onboardingComplete, logout, refreshDriver }}>
       {children}
     </DriverAuthContext.Provider>
   );

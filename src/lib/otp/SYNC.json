@@ -1,0 +1,17 @@
+{
+  "source": "sukkar/src/lib/otp",
+  "note": "نسخة للقراءة فقط — عدّلي المصدر ثم scripts/sync-otp-core.mjs --write",
+  "files": {
+    "channel.ts": "871437d05dbabf5956e8a83d39c86ad2372e99341605c044756b1bc2c32b9199",
+    "clientIp.ts": "d86606f625f151e53399d0d0f7641b9ecc0d333728b9c69cfae9ca6273692b97",
+    "config.ts": "437032434b671810fefbf09cabf97b875c189b23657ae6ddb0420fed8a259972",
+    "crypto.ts": "7f174bef59bb56fd1272e9aa6e02343de79dddf21ef60f8bc4a042cf265eec75",
+    "index.ts": "b1c9e275e4aaf87c2b18128e6c883e34f8968ed10e0a6b91039d7becb1cd61ee",
+    "limits.ts": "b9f1c500ced55bd380ec8948245607751d9b53428e8713f29330e7c71295e027",
+    "loginThrottle.ts": "2cf3249e4f43a0bf6449a9420c81ea423ba80e88081d860de64da478c3c6b67f",
+    "password.ts": "23ac688ee3419c2a2cc7c4f953321b8c85506fedf09ed8d46b0f5ab1e9f3cb66",
+    "phone.ts": "74c2ee55a784a1e96a6715074d690cecf867a41dee36c02fae0f68327384f3db",
+    "service.ts": "6209030c5bf3b627e76a0cb5dfb10762633b3564c1436f6eda1698054f328d32",
+    "types.ts": "010c100661120563d3e2e6d252282ce89af3d51dfbfda71f97c1b8d783d5f490"
+  }
+}
