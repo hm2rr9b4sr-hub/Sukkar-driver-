@@ -6,9 +6,9 @@ import { fetchMyDriverProfile, UIDriverProfile } from "@/lib/data";
 import { unregisterFromPush } from "@/lib/nativePush";
 import { driverAuthErrorMessage } from "@/lib/driverAuth/messages";
 
-// تدفق الدخول الجديد (مسارات /api/auth/driver/*): تفعيل/تسجيل أول بـOTP ثم كلمة مرور، ثم دخول يومي بكلمة
-// المرور بلا OTP. دوال OTP-عند-كل-دخول القديمة أدناه باقية بلا استخدام من الصفحات (لا حذف الآن؛ تُقاعَد
-// مع مساراتها وجدول otp_codes بعد نجاح الجديد).
+// تدفق الدخول (مسارات /api/auth/driver/*): تفعيل/تسجيل أول بـOTP (نواة lib/otp) ثم كلمة مرور، ثم دخول يومي
+// بكلمة المرور بلا OTP. مسارات OTP-عند-كل-دخول القديمة (/api/auth/otp/* وجدول otp_codes 0059 وlib/sms) أُزيلت
+// من الكود بعد التحقق أن لا مستدعي لها (آخر استخدام بالإنتاج 2026-10-08). جدول otp_codes باقٍ بالقاعدة حتى migration لاحقة.
 async function postJson(path: string, payload: unknown): Promise<{ ok: boolean; body: Record<string, unknown> }> {
   try {
     const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -25,25 +25,9 @@ export interface OnboardingCompleteArgs {
   fullName?: string; regionId?: string; vehicleType?: string; plateNumber?: string;
 }
 
-// Driver Onboarding — Account First, Approval Before Work: الدخول والتسجيل
-// كلاهما الآن عبر OTP (هاتف + رمز عبر SMS) لا بريد/كلمة مرور يعرفها
-// المندوب إطلاقاً. الآلية الفعلية: خادم /api/auth/otp/* (service-role)
-// يتحقق من الكود بنفسه (طبقة otp_codes مخصَّصة — migration 0059)، ثم يُصدر
-// hashed_token عبر auth.admin.generateLink(type:'magiclink')، والعميل هنا
-// يستهلكه عبر verifyOtp(type:'magiclink') لإصدار جلسة حقيقية محلياً — بلا
-// أي بريد فعلي يُرسَل، هذه فقط آلية GoTrue الداخلية لإصدار جلسة بلا كلمة مرور.
-//
-// كلمة المرور بالحساب (يولّدها الخادم عشوائياً وقت الإنشاء فقط) لا يراها
-// المندوب أبداً ولا تُستخدَم لأي دخول لاحق — كل دخول يمر بنفس تدفق OTP.
-
 interface DriverAuthCtx {
   driver: UIDriverProfile | null;
   loading: boolean;
-  requestOtp: (phone: string, purpose: "driver_signup" | "driver_login") => Promise<{ error: string | null }>;
-  verifySignupOtp: (args: {
-    phone: string; code: string; fullName: string; regionId: string; vehicleType?: string; plateNumber?: string;
-  }) => Promise<{ error: string | null }>;
-  verifyLoginOtp: (phone: string, code: string) => Promise<{ error: string | null }>;
   loginWithPassword: (phone: string, password: string) => Promise<{ error: string | null }>;
   onboardingRequest: (phone: string) => Promise<{ error: string | null }>;
   onboardingVerify: (phone: string, code: string) => Promise<{ error: string | null; ticket?: string; mode?: "activate" | "signup" }>;
@@ -55,9 +39,6 @@ interface DriverAuthCtx {
 const DriverAuthContext = createContext<DriverAuthCtx>({
   driver: null,
   loading: true,
-  requestOtp: async () => ({ error: "not-ready" }),
-  verifySignupOtp: async () => ({ error: "not-ready" }),
-  verifyLoginOtp: async () => ({ error: "not-ready" }),
   loginWithPassword: async () => ({ error: "not-ready" }),
   onboardingRequest: async () => ({ error: "not-ready" }),
   onboardingVerify: async () => ({ error: "not-ready" }),
@@ -94,101 +75,6 @@ export function DriverAuthProvider({ children }: { children: ReactNode }) {
 
     return () => sub.subscription.unsubscribe();
   }, [supabase, loadDriver]);
-
-  async function requestOtp(phone: string, purpose: "driver_signup" | "driver_login") {
-    // ⚠️ fetch نفسه (لا فقط استجابة غير ناجحة) قد يرفض الوعد — انقطاع شبكة،
-    // أو حظر من إضافة/VPN بالمتصفح (net::ERR_BLOCKED_BY_CLIENT، مُشاهَد فعلياً
-    // باختبار حي). بلا try/catch هنا يبقى الزر معلَّقاً على "جارٍ..." للأبد
-    // لأن setSubmitting(false) بالصفحة المستدعية لا يُنفَّذ أبداً.
-    let res: Response;
-    try {
-      res = await fetch("/api/auth/otp/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, purpose }),
-      });
-    } catch {
-      return { error: "تعذّر الاتصال بالسيرفر — تحقّق من الإنترنت (أو أي VPN/إضافة تحظر الطلب) وحاول مجدداً" };
-    }
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const messages: Record<string, string> = {
-        "account-already-exists": "يوجد حساب مسجَّل بهذا الرقم بالفعل — جرّب تسجيل الدخول",
-        "phone-already-registered": "هذا الرقم مسجَّل بحساب آخر في سُكّر (عميل أو متجر) — لا يمكن لرقم واحد امتلاك أكثر من حساب، استخدم رقماً مختلفاً",
-        "no-account-found": "لا يوجد حساب بهذا الرقم — سجّل حساباً جديداً أولاً",
-        "too-many-requests": "انتظر دقيقة قبل طلب رمز جديد",
-        "invalid-phone": "رقم الهاتف غير صحيح",
-      };
-      return { error: messages[body.error] ?? (body.error ?? "تعذّر إرسال الرمز") };
-    }
-    return { error: null };
-  }
-
-  // بعد نجاح verify (توقيع/دخول)، يستهلك hashed_token فوراً لإصدار جلسة حقيقية.
-  // ⚠️ ملاحظة مُكتشَفة فعلياً باختبار حي: hashed_token من generateLink يجب أن
-  // يُمرَّر عبر معامل token_hash تحديداً، لا token — token في verifyOtp محجوز
-  // لأكواد OTP الحرفية (مثل sms)، بينما token_hash خاص بروابط/tokens المُصدَرة
-  // مسبقاً كهذا. تمريره كـtoken يفشل بخطأ otp_expired رغم صحة كل شيء آخر.
-  async function consumeSessionToken(_email: string, token: string): Promise<{ error: string | null }> {
-    const { error } = await supabase.auth.verifyOtp({ token_hash: token, type: "magiclink" });
-    if (error) return { error: "تعذّر إتمام تسجيل الدخول — حاول مجدداً" };
-    const profile = await fetchMyDriverProfile();
-    setDriver(profile);
-    return { error: null };
-  }
-
-  async function verifySignupOtp(args: {
-    phone: string; code: string; fullName: string; regionId: string; vehicleType?: string; plateNumber?: string;
-  }) {
-    let res: Response;
-    try {
-      res = await fetch("/api/auth/otp/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...args, purpose: "driver_signup" }),
-      });
-    } catch {
-      return { error: "تعذّر الاتصال بالسيرفر — تحقّق من الإنترنت (أو أي VPN/إضافة تحظر الطلب) وحاول مجدداً" };
-    }
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const messages: Record<string, string> = {
-        "invalid-code": "الرمز غير صحيح",
-        "otp-expired": "انتهت صلاحية الرمز — اطلب رمزاً جديداً",
-        "otp-not-requested": "لم يُطلَب رمز لهذا الرقم — ابدأ من جديد",
-        "too-many-attempts": "محاولات كثيرة خاطئة — اطلب رمزاً جديداً",
-        "account-already-exists": "يوجد حساب مسجَّل بهذا الرقم بالفعل",
-        "phone-already-registered": "هذا الرقم مسجَّل بحساب آخر في سُكّر — استخدم رقماً مختلفاً",
-      };
-      return { error: messages[body.error] ?? (body.error ?? "تعذّر إتمام التسجيل") };
-    }
-    return consumeSessionToken(body.email, body.token);
-  }
-
-  async function verifyLoginOtp(phone: string, code: string) {
-    let res: Response;
-    try {
-      res = await fetch("/api/auth/otp/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, code, purpose: "driver_login" }),
-      });
-    } catch {
-      return { error: "تعذّر الاتصال بالسيرفر — تحقّق من الإنترنت (أو أي VPN/إضافة تحظر الطلب) وحاول مجدداً" };
-    }
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const messages: Record<string, string> = {
-        "invalid-code": "الرمز غير صحيح",
-        "otp-expired": "انتهت صلاحية الرمز — اطلب رمزاً جديداً",
-        "otp-not-requested": "لم يُطلَب رمز لهذا الرقم — ابدأ من جديد",
-        "too-many-attempts": "محاولات كثيرة خاطئة — اطلب رمزاً جديداً",
-        "no-account-found": "لا يوجد حساب بهذا الرقم",
-      };
-      return { error: messages[body.error] ?? (body.error ?? "تعذّر تسجيل الدخول") };
-    }
-    return consumeSessionToken(body.email, body.token);
-  }
 
   // الدخول اليومي: الخادم يتحقق من كلمة المرور ويحجز المحاولة، ويسلّم توكنات جلسة Supabase حقيقية.
   async function loginWithPassword(phone: string, password: string) {
@@ -231,7 +117,7 @@ export function DriverAuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <DriverAuthContext.Provider value={{ driver, loading, requestOtp, verifySignupOtp, verifyLoginOtp, loginWithPassword, onboardingRequest, onboardingVerify, onboardingComplete, logout, refreshDriver }}>
+    <DriverAuthContext.Provider value={{ driver, loading, loginWithPassword, onboardingRequest, onboardingVerify, onboardingComplete, logout, refreshDriver }}>
       {children}
     </DriverAuthContext.Provider>
   );
