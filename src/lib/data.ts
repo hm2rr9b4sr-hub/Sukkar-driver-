@@ -6,7 +6,7 @@ import type { VehicleCategory, TripType } from "@/lib/vehicle";
 // المندوب لمشروع Vercel/دومين خاص به). تحتوي فقط الدوال/الأنواع التي
 // يحتاجها المندوب — بلا أي منطق متجر/عميل/أدمن.
 
-export type DeliveryStatus = "assigned" | "accepted" | "picked_up" | "on_the_way" | "delivered";
+export type DeliveryStatus = "assigned" | "accepted" | "picked_up" | "on_the_way" | "delivered" | "failed";
 export type DriverStatus = "offline" | "available" | "busy";
 export type DeliveryExceptionType = "customer_unavailable" | "customer_refused" | "delivery_problem" | "driver_issue";
 
