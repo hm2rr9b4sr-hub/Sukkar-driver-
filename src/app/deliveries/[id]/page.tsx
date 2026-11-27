@@ -11,6 +11,7 @@ import {
   driverConfirmReturn,
   driverReportException,
   uploadDeliveryExceptionPhoto,
+  uploadDeliveryPhoto,
   UIDriverDeliveryDetail,
   DeliveryExceptionType,
 } from "@/lib/data";
@@ -42,6 +43,7 @@ export default function DriverDeliveryDetailPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [cashConfirmed, setCashConfirmed] = useState(false);
+  const [deliveryPhoto, setDeliveryPhoto] = useState<File | null>(null);
 
   const [showExceptionForm, setShowExceptionForm] = useState(false);
   const [exceptionType, setExceptionType] = useState<DeliveryExceptionType>("customer_unavailable");
@@ -100,13 +102,28 @@ export default function DriverDeliveryDetailPage() {
     await load();
   }
 
+  // 0086: الصورة إلزامية حين لا نقد يُحصَّل (طلب مدفوع مسبقاً) — الخادم يفرضها أيضاً
+  const photoRequired = (delivery?.cashExpected ?? 0) <= 0;
+
   async function handleDelivered() {
-    if (!delivery || !cashConfirmed) return;
+    if (!delivery || !cashConfirmed || busy) return;
+    if (photoRequired && !deliveryPhoto) { setActionError("صورة التسليم إلزامية لهذا الطلب (لا مبلغ يُحصَّل)"); return; }
     setBusy(true);
     setActionError(null);
-    const { ok, error } = await driverMarkDelivered(delivery.id, true);
+    let photoPath: string | null = null;
+    if (deliveryPhoto) {
+      const up = await uploadDeliveryPhoto(delivery.id, deliveryPhoto);
+      if (up.error || !up.path) { setBusy(false); setActionError("تعذّر رفع صورة التسليم — حاول مجدداً"); return; }
+      photoPath = up.path;
+    }
+    const { ok, error } = await driverMarkDelivered(delivery.id, true, photoPath);
     setBusy(false);
-    if (!ok) { setActionError(error ?? "تعذّر تنفيذ العملية"); return; }
+    if (!ok) {
+      setActionError(error === "delivery-photo-required" ? "صورة التسليم إلزامية لهذا الطلب"
+        : error === "invalid-delivery-photo" ? "صورة التسليم غير صالحة — التقطها مجدداً"
+        : (error ?? "تعذّر تنفيذ العملية"));
+      return;
+    }
     await load();
   }
 
@@ -261,11 +278,16 @@ export default function DriverDeliveryDetailPage() {
               onChange={(e) => setCashConfirmed(e.target.checked)}
               className="mt-0.5 w-5 h-5"
             />
-            <span>استلمت المبلغ كاملاً من العميل ({delivery.cashExpected} ريال)</span>
+            <span>{photoRequired ? "سلّمت الطلب للعميل (مدفوع مسبقاً — لا مبلغ يُحصَّل)" : `استلمت المبلغ كاملاً من العميل (${delivery.cashExpected} ريال)`}</span>
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-semibold">📷 صورة التسليم {photoRequired ? "(إلزامية)" : "(اختيارية — تحميك عند أي شكوى)"}</span>
+            <input type="file" accept="image/*" capture="environment" data-testid="delivery-photo-input"
+              onChange={(e) => setDeliveryPhoto(e.target.files?.[0] ?? null)} className="text-xs" />
           </label>
           <button
             onClick={handleDelivered}
-            disabled={busy || !cashConfirmed}
+            disabled={busy || !cashConfirmed || (photoRequired && !deliveryPhoto)}
             className="w-full py-3.5 rounded-2xl font-bold text-white disabled:opacity-40"
             style={{ background: "#16A34A" }}
           >

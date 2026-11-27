@@ -167,9 +167,13 @@ export async function driverMarkOnTheWay(deliveryId: string): Promise<{ ok: bool
 }
 
 // p_cashCollected يجب أن يكون true صراحة — نفس الشرط الصارم المفروض بمستوى RPC.
-export async function driverMarkDelivered(deliveryId: string, cashCollected: true): Promise<{ ok: boolean; error: string | null }> {
+// 0086: صورة إثبات التسليم اختيارية، وإلزامية بالخادم حين لا نقد يُحصَّل (cash_expected = 0). تُرفع أولاً ثم يُمرَّر مسارها.
+// لا يُرسَل p_photo_path بلا صورة حتى يبقى الاستدعاء متوافقاً مع التوقيع القديم.
+export async function driverMarkDelivered(deliveryId: string, cashCollected: true, photoPath?: string | null): Promise<{ ok: boolean; error: string | null }> {
   const supabase = createClient();
-  const { data, error } = await supabase.rpc("driver_mark_delivered", { p_delivery_id: deliveryId, p_cash_collected: cashCollected });
+  const { data, error } = await supabase.rpc("driver_mark_delivered", {
+    p_delivery_id: deliveryId, p_cash_collected: cashCollected, ...(photoPath ? { p_photo_path: photoPath } : {}),
+  });
   if (error) return { ok: false, error: error.message };
   const result = data as { ok: boolean; error?: string };
   return { ok: result.ok, error: result.error ?? null };
@@ -201,6 +205,15 @@ export async function driverReportException(
   if (error) return { ok: false, error: error.message };
   const result = data as { ok: boolean; error?: string };
   return { ok: result.ok, error: result.error ?? null };
+}
+
+export async function uploadDeliveryPhoto(deliveryId: string, file: File): Promise<{ path: string | null; error: string | null }> {
+  const supabase = createClient();
+  const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
+  const path = `${deliveryId}/${Date.now()}-${safeName}`;
+  const { error } = await supabase.storage.from("delivery-photos").upload(path, file, { cacheControl: "3600", upsert: false });
+  if (error) return { path: null, error: error.message };
+  return { path, error: null };
 }
 
 export async function uploadDeliveryExceptionPhoto(deliveryId: string, file: File): Promise<{ path: string | null; error: string | null }> {
