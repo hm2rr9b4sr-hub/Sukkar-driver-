@@ -31,7 +31,9 @@ export default function CashHandoverCard({ history, onDone }: { history: UIDeliv
     fetchReceivingAccounts().then(setAccounts);
     fetchMyCashHandovers(5).then(setHandovers);
   };
-  useEffect(load, []);
+  // تُعاد مع كل تحديث لسجل التوصيلات (مثلاً عند العودة للتطبيق) — وإلا تبقى حوالة رُفضت ظاهرة «بانتظار التأكيد»
+  // ويختفي زر التحويل رغم عودة المبلغ للعهدة (وُجد باختبار حي 2026-11-28)
+  useEffect(load, [history]);
 
   const inHand = cashInHand(history);
   const pending = handovers.find((h) => h.status === "pending");
