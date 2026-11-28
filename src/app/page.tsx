@@ -6,6 +6,7 @@ import { useDriverAuth } from "@/lib/DriverAuthContext";
 import { createClient } from "@/lib/supabase/client";
 import {
   fetchMyDeliveries,
+  cashInHand,
   fetchMyDeliveryHistory,
   driverSetStatus,
   driverUpdateLocation,
@@ -49,12 +50,15 @@ export default function DriverHomePage() {
 
   // ذهاب وعودة: توصيلات سُلِّمت ولم تُؤكَّد عودة أدوات المتجر — تظهر هنا ليصل إليها المندوب بعد مغادرة شاشة التوصيلة (لا تمنع استلام طلبات جديدة)
   const [pendingReturns, setPendingReturns] = useState<UIDriverDeliveryDetail[]>([]);
+  // 0088: النقد الذي معك لسُكّر (يُحوَّل من «أرباحي»)
+  const [cashOwed, setCashOwed] = useState(0);
 
   const loadDeliveries = useCallback(async () => {
     setDeliveriesLoading(true);
     const [list, history] = await Promise.all([fetchMyDeliveries(), fetchMyDeliveryHistory()]);
     setDeliveries(list);
     setPendingReturns(history.filter((d) => d.tripType === "round_trip" && !d.returnCompletedAt));
+    setCashOwed(cashInHand(history).amount);
     setDeliveriesLoading(false);
   }, []);
 
@@ -323,6 +327,13 @@ export default function DriverHomePage() {
             ))}
           </div>
         </div>
+      )}
+
+      {cashOwed > 0 && (
+        <Link href="/earnings" className="block rounded-2xl p-4 border" style={{ background: "#FEF3C7", borderColor: "var(--gold)" }} data-testid="cash-owed-banner">
+          <p className="font-bold">💰 معك {Math.round(cashOwed).toLocaleString("en-US")} ريال لسُكّر</p>
+          <p className="text-xs" style={{ color: "var(--muted)" }}>حوّلها لأحد حسابات سُكّر ثم أرسل رقم الحوالة من «أرباحي»</p>
+        </Link>
       )}
 
       <Link

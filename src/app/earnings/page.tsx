@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useDriverAuth } from "@/lib/DriverAuthContext";
 import { fetchMyDeliveryHistory, UIDelivery } from "@/lib/data";
 import { driverTripEarning } from "@/lib/vehicle";
+import CashHandoverCard from "../CashHandoverCard";
 
 // شاشة أرباح المندوب — لا تعرض ولا تجلب إطلاقاً عمولة سُكّر أو مستحقات
 // متاجر أخرى. الدوال المتاحة لجانب المندوب في lib/data.ts أصلاً لا تمنح
@@ -18,12 +19,14 @@ export default function DriverEarningsPage() {
     if (!authLoading && !driver) router.replace("/login");
   }, [authLoading, driver, router]);
 
+  const reload = () => fetchMyDeliveryHistory().then((list) => {
+    setHistory(list);
+    setLoading(false);
+  });
+
   useEffect(() => {
     if (!driver) return;
-    fetchMyDeliveryHistory().then((list) => {
-      setHistory(list);
-      setLoading(false);
-    });
+    reload();
   }, [driver]);
 
   if (authLoading || loading) {
@@ -31,9 +34,6 @@ export default function DriverEarningsPage() {
   }
 
   const totalEarnings = history.reduce((sum, d) => sum + driverTripEarning(d), 0);
-  const pendingConfirmation = history
-    .filter((d) => !d.cashConfirmedBySukkarAt)
-    .reduce((sum, d) => sum + (d.remainingAmountSnapshot ?? 0), 0);
 
   return (
     <div className="flex flex-col gap-4">
@@ -42,10 +42,7 @@ export default function DriverEarningsPage() {
         <p className="text-2xl font-black" style={{ color: "var(--gold)" }}>{totalEarnings.toFixed(2)} ريال</p>
       </div>
 
-      <div className="rounded-2xl p-4 border" style={{ background: "#FEF3C7", borderColor: "var(--gold)" }}>
-        <p className="text-sm font-semibold">المبلغ المستحق لسُكّر (غير مؤكَّد بعد)</p>
-        <p className="text-2xl font-black" style={{ color: "var(--gold)" }}>{pendingConfirmation.toFixed(2)} ريال</p>
-      </div>
+      <CashHandoverCard history={history} onDone={reload} />
 
       <div>
         <h2 className="font-bold mb-2 px-1">سجل التوصيلات</h2>
@@ -73,7 +70,7 @@ export default function DriverEarningsPage() {
                       : d.cashRejectedAt
                       ? "❌ غير مكتملة"
                       : d.cashHandedToSukkarAt
-                      ? "بانتظار التأكيد"
+                      ? "بانتظار تأكيد سُكّر"
                       : "بانتظار التحويل لسُكّر"}
                   </span>
                 </div>

@@ -179,12 +179,66 @@ export async function driverMarkDelivered(deliveryId: string, cashCollected: tru
   return { ok: result.ok, error: result.error ?? null };
 }
 
-export async function driverReportCashHandoff(deliveryId: string): Promise<{ ok: boolean; error: string | null }> {
+// ---------------------------------------------------------------------------
+// 0088: حوالة نقد المندوب لسُكّر — حوالة واحدة تغطي كل ما معه، إلى أحد حسابات سُكّر.
+// (حلّت محل زر الإقرار لكل طلب driver_report_cash_handoff، المسحوب بالقاعدة.)
+// ---------------------------------------------------------------------------
+export interface UIReceivingAccount { id: string; provider: string; accountName: string; accountNumber: string; }
+export type CashHandoverStatus = "pending" | "confirmed" | "rejected";
+export interface UICashHandover {
+  id: string; amount: number; deliveryCount: number; reference: string; status: CashHandoverStatus;
+  rejectionReason: string | null; createdAt: string; provider: string; accountNumber: string;
+}
+
+export async function fetchReceivingAccounts(): Promise<UIReceivingAccount[]> {
   const supabase = createClient();
-  const { data, error } = await supabase.rpc("driver_report_cash_handoff", { p_delivery_id: deliveryId });
+  const { data, error } = await supabase.from("sukkar_receiving_accounts")
+    .select("id, provider, account_name, account_number").eq("is_active", true).order("sort_order");
+  if (error || !data) return [];
+  return data.map((a) => ({ id: a.id, provider: a.provider, accountName: a.account_name, accountNumber: a.account_number }));
+}
+
+export async function fetchMyCashHandovers(limit = 10): Promise<UICashHandover[]> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data, error } = await supabase.from("driver_cash_handovers")
+    .select("id, amount, delivery_count, reference, status, rejection_reason, created_at, account_snapshot")
+    .eq("driver_id", user.id).order("created_at", { ascending: false }).limit(limit);
+  if (error || !data) return [];
+  return data.map((h) => ({
+    id: h.id, amount: Number(h.amount), deliveryCount: h.delivery_count, reference: h.reference,
+    status: h.status as CashHandoverStatus, rejectionReason: h.rejection_reason, createdAt: h.created_at,
+    provider: h.account_snapshot?.provider ?? "", accountNumber: h.account_snapshot?.account_number ?? "",
+  }));
+}
+
+// النقد الذي مع المندوب لسُكّر: مسلَّم، غير مؤكَّد، غير مُدرَج بحوالة معلّقة (أو رُفضت حوالته) — نفس شرط الخادم
+export function cashInHand(history: UIDelivery[]): { amount: number; count: number } {
+  const open = history.filter((d) => d.status === "delivered" && !d.cashConfirmedBySukkarAt
+    && (!d.cashHandedToSukkarAt || d.cashRejectedAt) && (d.remainingAmountSnapshot ?? 0) > 0);
+  return { amount: open.reduce((s, d) => s + Number(d.remainingAmountSnapshot), 0), count: open.length };
+}
+
+export async function uploadCashHandoverProof(file: File): Promise<{ path: string | null; error: string | null }> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { path: null, error: "unauthorized" };
+  const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
+  const path = `${user.id}/${Date.now()}-${safeName}`;
+  const { error } = await supabase.storage.from("cash-handover-proofs").upload(path, file, { cacheControl: "3600", upsert: false });
+  if (error) return { path: null, error: error.message };
+  return { path, error: null };
+}
+
+export async function driverSubmitCashHandover(accountId: string, reference: string, proofPath?: string | null): Promise<{ ok: boolean; error: string | null; amount?: number }> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("driver_submit_cash_handover", {
+    p_account_id: accountId, p_reference: reference, p_proof_path: proofPath ?? null,
+  });
   if (error) return { ok: false, error: error.message };
-  const result = data as { ok: boolean; error?: string };
-  return { ok: result.ok, error: result.error ?? null };
+  const r = data as { ok: boolean; error?: string; amount?: number };
+  return { ok: r.ok, error: r.error ?? null, amount: r.amount };
 }
 
 // ذهاب وعودة: تأكيد المندوب أنه أعاد أدوات المتجر (0078) — منفصل عن تسليم الطلب، لا أثر مالي.

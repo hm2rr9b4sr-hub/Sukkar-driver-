@@ -1,13 +1,13 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useDriverAuth } from "@/lib/DriverAuthContext";
 import {
   fetchMyDeliveries,
   driverMarkPickedUp,
   driverMarkOnTheWay,
   driverMarkDelivered,
-  driverReportCashHandoff,
   driverConfirmReturn,
   driverReportException,
   uploadDeliveryExceptionPhoto,
@@ -124,16 +124,6 @@ export default function DriverDeliveryDetailPage() {
         : (error ?? "تعذّر تنفيذ العملية"));
       return;
     }
-    await load();
-  }
-
-  async function handleCashHandoff() {
-    if (!delivery) return;
-    setBusy(true);
-    setActionError(null);
-    const { ok, error } = await driverReportCashHandoff(delivery.id);
-    setBusy(false);
-    if (!ok) { setActionError(error ?? "تعذّر تنفيذ العملية"); return; }
     await load();
   }
 
@@ -298,30 +288,16 @@ export default function DriverDeliveryDetailPage() {
 
       {delivery.status === "delivered" && (
         <div className="rounded-2xl p-4 border flex flex-col gap-3" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-          {!delivery.cashHandedToSukkarAt || delivery.cashRejectedAt ? (
-            <>
-              {delivery.cashRejectedAt && (
-                <div className="rounded-xl p-3 bg-red-50 border border-red-200">
-                  <p className="font-bold text-red-700 text-sm">❌ الحوالة غير مكتملة</p>
-                  {delivery.cashRejectionReason && (
-                    <p className="text-sm text-red-600 mt-1">{delivery.cashRejectionReason}</p>
-                  )}
-                </div>
-              )}
-              <button
-                onClick={handleCashHandoff}
-                disabled={busy}
-                className="w-full py-3.5 rounded-2xl font-bold text-white disabled:opacity-60"
-                style={{ background: "var(--gold)" }}
-              >
-                💰 {delivery.cashRejectedAt ? "حوّلت المبلغ مجدداً" : "حوّلت المبلغ لسُكّر"}
-              </button>
-            </>
-          ) : !delivery.cashConfirmedBySukkarAt ? (
+          {/* 0088: التحويل لسُكّر صار حوالة واحدة لكل ما معك من صفحة «أرباحي» */}
+          {delivery.cashConfirmedBySukkarAt ? (
+            <p className="text-center font-semibold text-green-700">✓ وصل المبلغ لسُكّر</p>
+          ) : delivery.cashHandedToSukkarAt && !delivery.cashRejectedAt ? (
             <p className="text-center font-semibold" style={{ color: "var(--muted)" }}>بانتظار تأكيد سُكّر</p>
-          ) : (
-            <p className="text-center font-semibold text-green-700">✓ تم التأكيد</p>
-          )}
+          ) : delivery.remainingAmountSnapshot > 0 ? (
+            <Link href="/earnings" className="block w-full text-center py-3.5 rounded-2xl font-bold text-white" style={{ background: "var(--gold)" }}>
+              💰 حوّل المبلغ لسُكّر من «أرباحي»
+            </Link>
+          ) : null}
           {delivery.tripType === "round_trip" && (
             delivery.returnCompletedAt ? (
               <p className="text-center font-semibold text-green-700" data-testid="return-done">✓ تمت العودة بأدوات المتجر</p>
